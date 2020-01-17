@@ -1,5 +1,5 @@
-#ifndef __usart_H
-#define __usart_H
+#ifndef __USART_RS485_HAL_H
+#define __USART_RS485_HAL_H
 
 
 #ifdef __cplusplus
@@ -8,7 +8,7 @@
 
      
 
-#include "stm32f4xx_hal.h"     
+#include "stm32f7xx_hal.h"     
 
 typedef struct
 {
@@ -30,8 +30,8 @@ extern UART_HandleTypeDef huart6;
 
 
 
-void MX_USART1_UART_Init(void);
-//void MX_USART2_UART_Init(void);
+//void MX_USART1_UART_Init(void);
+void MX_USART2_UART_Init(void);
 //void MX_USART3_UART_Init(void);
 //void MX_USART4_UART_Init(void);
 //void MX_USART5_UART_Init(void);

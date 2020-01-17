@@ -1,14 +1,14 @@
 #include "USART_RS485_HAL.h"
 
 
+#define STM32F7_RS285
+//#define STM32F4_RS285
 
 
 
+//#define USE_USART1
 
-
-#define USE_USART1
-
-//#define USE_USART2
+#define USE_USART2
 
 //#define USE_USART3
 
@@ -107,10 +107,10 @@ void MX_USART2_UART_Init(void)
     huart2.TxXferCount = 0;
 
     huart2Rs485.rx_package_size = 0;
-    huart2Rs485.gpioRE_Pin = RS_495RE_Pin;
-    huart2Rs485.gpioRE_Port = RS_495RE_GPIO_Port;
-    huart2Rs485.gpioDE_Pin = 0;
-    huart2Rs485.gpioDE_Port = 0;
+    huart2Rs485.gpioRE_Pin = GPIO_PIN_3;
+    huart2Rs485.gpioRE_Port = GPIOD;
+    huart2Rs485.gpioDE_Pin = GPIO_PIN_4;
+    huart2Rs485.gpioDE_Port = GPIOD;
     huart2Rs485.huart = &huart2;
 }
 #endif
@@ -348,9 +348,18 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     {
         __HAL_RCC_USART2_CLK_ENABLE();
         
-        //init rx tx pins
         
-        //init re de pins
+        __HAL_RCC_GPIOD_CLK_ENABLE();
+        /**USART2 GPIO Configuration    
+        PD5     ------> USART2_TX
+        PD6     ------> USART2_RX 
+        */
+        GPIO_InitStruct.Pin = GPIO_PIN_5|GPIO_PIN_6;
+        GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+        GPIO_InitStruct.Pull = GPIO_NOPULL;
+        GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+        GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
+        HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
         
         
         /* USART2 interrupt Init */
@@ -488,7 +497,7 @@ static void USART_RS485_Handler(UsartRS485_t * usart485)
     if (__HAL_UART_GET_FLAG(usart485->huart, UART_FLAG_TXE) == SET)
     {
         //package transmitted
-        if (huart1.TxXferCount == 0)
+        if (usart485->huart->TxXferCount == 0)
         {
             //RE DE pins to RX
             if (usart485->gpioRE_Port != 0)
@@ -504,12 +513,18 @@ static void USART_RS485_Handler(UsartRS485_t * usart485)
         else
         {
             usart485->huart->TxXferCount--;
+#ifdef STM32F7_RS285
+            usart485->huart->Instance->TDR = usart485->huart->pTxBuffPtr[tx_bytes_counter++];
+#endif
+#ifdef STM32F4_RS285
             usart485->huart->Instance->DR = usart485->huart->pTxBuffPtr[tx_bytes_counter++];
+#endif
+            
         }
     }
     
     //package received
-    if ( __HAL_UART_GET_FLAG(&huart1, UART_FLAG_IDLE) == SET )
+    if ( __HAL_UART_GET_FLAG(usart485->huart, UART_FLAG_IDLE) == SET )
     {
         __HAL_UART_CLEAR_IDLEFLAG(usart485->huart);
         
@@ -529,7 +544,12 @@ static void USART_RS485_Handler(UsartRS485_t * usart485)
         int byte_position = usart485->huart->RxXferSize - usart485->huart->RxXferCount;
         if ( byte_position >= 0 && byte_position < usart485->huart->RxXferSize)
         {
+#ifdef STM32F7_RS285
+            usart485->huart->pRxBuffPtr[byte_position] = usart485->huart->Instance->RDR;
+#endif
+#ifdef STM32F4_RS285
             usart485->huart->pRxBuffPtr[byte_position] = usart485->huart->Instance->DR;
+#endif
             usart485->huart->RxXferCount--;
         }
     }
